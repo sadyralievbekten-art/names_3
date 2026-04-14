@@ -2,16 +2,80 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Каталог</title>
+  <title>Каталог имён</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #f5f5f5;
+    }
+
+    .header {
+      background: #222;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .btn {
+      background: #4caf50;
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: #eee;
+      padding: 3px 6px;
+      margin: 2px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .empty {
+      text-align: center;
+      color: #777;
+      margin-top: 50px;
+    }
+  </style>
 </head>
+
 <body>
 
-<h1>Каталог имён</h1>
+<div class="header">
+  <div>📚 Каталог имён</div>
 
-<input id="search" placeholder="Поиск">
-<button onclick="load()">Найти</button>
+  <div>
+    <button class="btn" onclick="go('login.html')">Вход</button>
+    <button class="btn" onclick="go('admin.html')">Админка</button>
+    <button class="btn" onclick="go('stats.html')">Статистика</button>
+  </div>
+</div>
 
-<div id="list"></div>
+<div class="container">
+
+  <input id="search" placeholder="Поиск по имени">
+  <button onclick="load()">Найти</button>
+
+  <div id="list"></div>
+
+</div>
 
 <script src="site.js"></script>
 
