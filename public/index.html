@@ -1,83 +1,128 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Каталог имён</title>
-
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       margin: 0;
       background: #f5f5f5;
+      color: #222;
     }
 
     .header {
       background: #222;
       color: white;
-      padding: 15px;
+      padding: 14px 18px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .btn {
+      border: 0;
       background: #4caf50;
       color: white;
-      padding: 6px 12px;
-      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
       cursor: pointer;
-      margin-left: 5px;
+      font-size: 14px;
+    }
+
+    .btn.secondary {
+      background: #666;
     }
 
     .container {
+      max-width: 1100px;
+      margin: 0 auto;
       padding: 20px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    input {
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      min-width: 260px;
+      font-size: 14px;
     }
 
     .card {
       background: white;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 6px;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 12px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .meta {
+      color: #555;
+      margin: 6px 0;
     }
 
     .tag {
       display: inline-block;
       background: #eee;
-      padding: 3px 6px;
-      margin: 2px;
-      border-radius: 4px;
+      padding: 5px 8px;
+      margin: 4px 4px 0 0;
+      border-radius: 999px;
       cursor: pointer;
+      user-select: none;
     }
 
     .empty {
       text-align: center;
-      color: #777;
-      margin-top: 50px;
+      color: #666;
+      padding: 56px 16px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
   </style>
 </head>
-
 <body>
 
-<div class="header">
-  <div>📚 Каталог имён</div>
-
-  <div>
-    <button class="btn" onclick="go('login.html')">Вход</button>
-    <button class="btn" onclick="go('admin.html')">Админка</button>
-    <button class="btn" onclick="go('stats.html')">Статистика</button>
+  <div class="header">
+    <div class="title">📚 Каталог имён</div>
+    <div class="nav">
+      <button class="btn" onclick="go('login.html')">Вход</button>
+      <button class="btn" onclick="go('login.html')">Админка</button>
+      <button class="btn" onclick="go('stats.html')">Статистика</button>
+      <button class="btn" onclick="go('import.html')">Импорт</button>
+    </div>
   </div>
-</div>
 
-<div class="container">
+  <div class="container">
+    <div class="toolbar">
+      <input id="search" placeholder="Поиск по имени" />
+      <button class="btn" onclick="load()">Найти</button>
+      <button class="btn secondary" onclick="resetFilter()">Сбросить</button>
+    </div>
 
-  <input id="search" placeholder="Поиск по имени">
-  <button onclick="load()">Найти</button>
+    <div id="list"></div>
+  </div>
 
-  <div id="list"></div>
-
-</div>
-
-<script src="site.js"></script>
-
+  <script src="site.js"></script>
 </body>
 </html>
