@@ -239,7 +239,18 @@ app.get("/stats/roots", (req, res) => {
       map[r.norm].count++;
     })
   );
+const ADMIN_LOGIN = "СБК";
+const ADMIN_PASSWORD = "12345";
 
+app.post("/login", (req, res) => {
+  const { login, password } = req.body;
+
+  if (login === ADMIN_LOGIN && password === ADMIN_PASSWORD) {
+    return res.json({ token: ADMIN_TOKEN });
+  }
+
+  res.status(401).json({ error: "Wrong login or password" });
+});
   res.json(Object.values(map).sort((a, b) => b.count - a.count));
 });
 
