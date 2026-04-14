@@ -2,24 +2,23 @@
 <html>
 <body>
 
-<input type="password" id="pass">
-<button onclick="login()">Войти</button>
+<h1 id="mode">Админ панель</h1>
 
-<script>
-async function login() {
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ password: pass.value })
-  });
+<input id="name" placeholder="Имя"><br><br>
+<input id="meaning" placeholder="Значение"><br><br>
+<input id="etymology" placeholder="Этимология"><br><br>
 
-  if (res.ok) {
-    const data = await res.json();
-    localStorage.setItem("token", data.token);
-    location = "/admin.html";
-  }
-}
-</script>
+<input id="tags" placeholder="Теги (через запятую)"><br><br>
+<input id="roots" placeholder="Корни (через запятую)"><br><br>
+
+<button onclick="save()">Сохранить</button>
+<button onclick="resetForm()">Сброс</button>
+
+<hr>
+
+<div id="list"></div>
+
+<script src="app.js"></script>
 
 </body>
 </html>
