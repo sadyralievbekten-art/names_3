@@ -1,18 +1,36 @@
-<input type="password" id="pass">
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>Вход администратора</h1>
+
+<input id="login" placeholder="Логин"><br><br>
+<input id="pass" type="password" placeholder="Пароль"><br><br>
+
 <button onclick="login()">Войти</button>
+
+<p id="msg"></p>
 
 <script>
 async function login() {
+  const loginVal = document.getElementById("login").value;
+  const password = document.getElementById("pass").value;
+
   const res = await fetch("/login", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ password: pass.value })
+    body: JSON.stringify({ login: loginVal, password })
   });
 
   if (res.ok) {
     const data = await res.json();
     localStorage.setItem("token", data.token);
-    location = "/admin.html";
+    window.location = "/admin.html";
+  } else {
+    document.getElementById("msg").innerText = "Ошибка входа";
   }
 }
 </script>
+
+</body>
+</html>
