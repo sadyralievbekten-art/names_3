@@ -1,62 +1,47 @@
-function go(page) {
-  window.location = "/" + page;
-}
-
-function safe(arr) {
-  return Array.isArray(arr) ? arr : [];
-}
+let openedId = null;
 
 async function load() {
   const res = await fetch("/names");
   const data = await res.json();
 
-  const search = document.getElementById("search").value.toLowerCase();
-
-  const filtered = data.filter(n =>
-    (n.name || "").toLowerCase().includes(search)
-  );
-
-  render(filtered);
-}
-
-function reset() {
-  document.getElementById("search").value = "";
-  load();
-}
-
-function render(data) {
   const list = document.getElementById("list");
-
-  if (!data.length) {
-    list.innerHTML = `
-      <div class="empty">
-        <h2>Пока нет имён</h2>
-        <p>Добавь их через админку</p>
-      </div>
-    `;
-    return;
-  }
-
   list.innerHTML = "";
 
   data.forEach(n => {
     const div = document.createElement("div");
-    div.className = "card";
+    div.style.border = "1px solid #ccc";
+    div.style.padding = "10px";
+    div.style.margin = "10px";
+    div.style.cursor = "pointer";
 
-    const tags = safe(n.tags);
+    const isOpen = openedId === n.id;
 
     div.innerHTML = `
-      <div class="name">${n.name || ""}</div>
+      <b onclick="toggle(${n.id})">${n.name}</b><br>
 
-      <div class="tags">
-        ${tags.map(t =>
-          `<span class="tag">${t.name}</span>`
-        ).join("")}
-      </div>
+      ${isOpen ? `
+        <div style="margin-top:10px;">
+          ${n.meaning || ""}<br>
+          ${n.etymology || ""}<br>
+          Теги: ${(n.tags || []).map(t => t.name).join(", ")}<br>
+          Корни: ${(n.roots || []).map(r => r.name).join(", ")}<br>
+          ${n.analysis || ""}
+        </div>
+      ` : ""}
     `;
 
     list.appendChild(div);
   });
+}
+
+function toggle(id) {
+  if (openedId === id) {
+    openedId = null;
+  } else {
+    openedId = id;
+  }
+
+  load();
 }
 
 load();
