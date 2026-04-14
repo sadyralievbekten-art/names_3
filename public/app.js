@@ -10,151 +10,94 @@ function authFetch(url, options = {}) {
   return fetch(url, options);
 }
 
-function getValue(id) {
-  const el = document.getElementById(id);
-  return el ? el.value : "";
-}
-
-function setValue(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.value = value ?? "";
-}
-
-function parseList(value) {
-  return String(value || "")
-    .split(",")
-    .map(s => s.trim())
-    .filter(Boolean);
-}
-
 let editId = null;
 
+// ===== SAVE =====
 async function save() {
-  const body = {
-    name: getValue("name").trim(),
-    meaning: getValue("meaning").trim(),
-    etymology: getValue("etymology").trim(),
-    tags: parseList(getValue("tags")),
-    roots: parseList(getValue("roots"))
-  };
+  const name = document.getElementById("name").value;
+  const meaning = document.getElementById("meaning").value;
+  const etymology = document.getElementById("etymology").value;
 
-  if (!body.name) {
-    alert("Имя обязательно");
-    return;
-  }
+  const tags = document.getElementById("tags").value
+    .split(",")
+    .map(t => t.trim())
+    .filter(Boolean);
 
-  const url = editId ? `/names/${editId}` : "/names";
-  const method = editId ? "PUT" : "POST";
+  const roots = document.getElementById("roots").value
+    .split(",")
+    .map(r => r.trim())
+    .filter(Boolean);
 
-  const res = await authFetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
+  const body = { name, meaning, etymology, tags, roots };
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    alert(err.error || "Ошибка сохранения");
-    return;
+  if (editId) {
+    await authFetch("/names/" + editId, {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
+  } else {
+    await authFetch("/names", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
   }
 
   resetForm();
   load();
 }
 
-function edit(item) {
-  editId = item.id;
+// ===== EDIT =====
+function edit(n) {
+  editId = n.id;
 
-  setValue("name", item.name);
-  setValue("meaning", item.meaning);
-  setValue("etymology", item.etymology);
+  document.getElementById("name").value = n.name;
+  document.getElementById("meaning").value = n.meaning;
+  document.getElementById("etymology").value = n.etymology;
 
-  setValue("tags", safeArray(item.tags).map(t => t.name ?? "").join(", "));
-  setValue("roots", safeArray(item.roots).map(r => r.name ?? "").join(", "));
+  document.getElementById("tags").value =
+    n.tags.map(t => t.name).join(", ");
 
-  const mode = document.getElementById("mode");
-  if (mode) mode.innerText = "Редактирование";
+  document.getElementById("roots").value =
+    n.roots.map(r => r.name).join(", ");
 }
 
-function resetForm() {
-  editId = null;
-
-  setValue("name", "");
-  setValue("meaning", "");
-  setValue("etymology", "");
-  setValue("tags", "");
-  setValue("roots", "");
-
-  const mode = document.getElementById("mode");
-  if (mode) mode.innerText = "Создание";
-}
-
+// ===== DELETE =====
 async function del(id) {
-  if (!confirm("Удалить запись?")) return;
-
-  const res = await authFetch(`/names/${id}`, {
-    method: "DELETE"
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    alert(err.error || "Ошибка удаления");
-    return;
-  }
-
-  if (editId === id) resetForm();
+  await authFetch("/names/" + id, { method: "DELETE" });
   load();
 }
 
-function safeArray(value) {
-  return Array.isArray(value) ? value : [];
+// ===== RESET =====
+function resetForm() {
+  editId = null;
+
+  document.getElementById("name").value = "";
+  document.getElementById("meaning").value = "";
+  document.getElementById("etymology").value = "";
+  document.getElementById("tags").value = "";
+  document.getElementById("roots").value = "";
 }
 
+// ===== LOAD =====
 async function load() {
   const res = await fetch("/names");
   const data = await res.json();
 
   const list = document.getElementById("list");
-  if (!list) return;
 
-  if (!data.length) {
-    list.innerHTML = "<p>Пока нет записей.</p>";
-    return;
-  }
-
-  list.innerHTML = "";
-
-  data.forEach((n) => {
-    const tags = safeArray(n.tags).map(t => t.name ?? "").join(", ");
-    const roots = safeArray(n.roots).map(r => r.name ?? "").join(", ");
-
-    const div = document.createElement("div");
-    div.style.border = "1px solid #ddd";
-    div.style.padding = "10px";
-    div.style.margin = "10px 0";
-    div.style.borderRadius = "8px";
-
-    div.innerHTML = `
-      <b>${n.name ?? ""}</b>
-      <div style="margin-top:6px;">${n.meaning ?? ""}</div>
-      <div style="margin-top:6px;">${n.etymology ?? ""}</div>
-      <div style="margin-top:6px;"><b>Теги:</b> ${tags || "нет"}</div>
-      <div style="margin-top:6px;"><b>Корни:</b> ${roots || "нет"}</div>
-      <div style="margin-top:8px;">
-        <button onclick='edit(${JSON.stringify(n).replace(/'/g, "\\'")})'>Редактировать</button>
-        <button onclick="del(${n.id})">Удалить</button>
-      </div>
-    `;
-
-    list.appendChild(div);
-  });
+  list.innerHTML = data.map(n => `
+    <div style="border:1px solid #ccc; margin:10px; padding:10px;">
+      <b>${n.name}</b><br>
+      ${n.meaning}<br>
+      ${n.etymology}<br>
+      Теги: ${n.tags.map(t => t.name).join(", ")}<br>
+      Корни: ${n.roots.map(r => r.name).join(", ")}<br>
+      <button onclick='edit(${JSON.stringify(n)})'>Редактировать</button>
+      <button onclick='del(${n.id})'>Удалить</button>
+    </div>
+  `).join("");
 }
-
-window.save = save;
-window.edit = edit;
-window.del = del;
-window.resetForm = resetForm;
 
 load();
