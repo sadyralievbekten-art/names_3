@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>Импорт CSV</h1>
+
+<input type="file" id="file">
+<button onclick="upload()">Загрузить</button>
+
+<script>
+async function upload() {
+  const file = document.getElementById("file").files[0];
+  const text = await file.text();
+
+  await fetch("/import", {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain",
+      "Authorization": localStorage.getItem("token")
+    },
+    body: text
+  });
+
+  alert("Готово");
+}
+</script>
+
+</body>
+</html>
