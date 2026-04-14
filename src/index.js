@@ -4,8 +4,11 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
+
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json());
+app.use(express.text({ type: "text/plain" })); // фикс для CSV
 app.use(express.static(path.join(__dirname, "../public")));
 
 const DATA_PATH = path.join(__dirname, "../data/names.json");
@@ -13,7 +16,7 @@ const DATA_PATH = path.join(__dirname, "../data/names.json");
 const ADMIN_PASSWORD = "12345";
 const ADMIN_TOKEN = "secret_token";
 
-// ===== DATA =====
+// ===== UTILS =====
 function readData() {
   if (!fs.existsSync(DATA_PATH)) return [];
   return JSON.parse(fs.readFileSync(DATA_PATH));
@@ -24,7 +27,7 @@ function writeData(data) {
 }
 
 function normalize(str) {
-  return str.trim().toLowerCase();
+  return (str || "").trim().toLowerCase();
 }
 
 // ===== AUTH =====
@@ -42,17 +45,28 @@ function checkAuth(req, res, next) {
   next();
 }
 
+// ===== ROOT (главная страница) =====
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/index.html"));
+});
+
 // ===== CRUD =====
+
+// создать
 app.post("/names", checkAuth, (req, res) => {
   const { name, meaning, etymology, tags = [], roots = [] } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: "Name required" });
+  }
 
   const data = readData();
 
   data.push({
     id: Date.now() + Math.random(),
     name,
-    meaning,
-    etymology,
+    meaning: meaning || "",
+    etymology: etymology || "",
     tags: tags.map(t => ({ name: t, norm: normalize(t) })),
     roots: roots.map(r => ({ name: r, norm: normalize(r) }))
   });
@@ -61,19 +75,23 @@ app.post("/names", checkAuth, (req, res) => {
   res.json({ success: true });
 });
 
-app.get("/names", (req, res) => res.json(readData()));
+// все имена
+app.get("/names", (req, res) => {
+  res.json(readData());
+});
 
+// обновить
 app.put("/names/:id", checkAuth, (req, res) => {
   const id = Number(req.params.id);
   const data = readData();
 
-  const i = data.findIndex(n => n.id === id);
-  if (i === -1) return res.status(404).json({ error: "Not found" });
+  const index = data.findIndex(n => n.id === id);
+  if (index === -1) return res.status(404).json({ error: "Not found" });
 
-  const { name, meaning, etymology, tags, roots } = req.body;
+  const { name, meaning, etymology, tags = [], roots = [] } = req.body;
 
-  data[i] = {
-    ...data[i],
+  data[index] = {
+    ...data[index],
     name,
     meaning,
     etymology,
@@ -82,17 +100,25 @@ app.put("/names/:id", checkAuth, (req, res) => {
   };
 
   writeData(data);
-  res.json(data[i]);
+  res.json(data[index]);
 });
 
+// удалить
 app.delete("/names/:id", checkAuth, (req, res) => {
-  writeData(readData().filter(n => n.id !== Number(req.params.id)));
+  const data = readData().filter(n => n.id !== Number(req.params.id));
+  writeData(data);
   res.json({ success: true });
 });
 
-// ===== IMPORT =====
+// ===== IMPORT CSV =====
 app.post("/import", checkAuth, (req, res) => {
-  const lines = req.body.split("\n").filter(l => l.trim());
+  const csv = req.body;
+
+  if (!csv) {
+    return res.status(400).json({ error: "No data" });
+  }
+
+  const lines = csv.split("\n").filter(l => l.trim());
   const headers = lines[0].split(",");
 
   const data = readData();
@@ -107,13 +133,23 @@ app.post("/import", checkAuth, (req, res) => {
       obj[h.trim()] = parts[idx]?.replace(/"/g, "").trim();
     });
 
+    if (!obj.name) continue;
+
     data.push({
       id: Date.now() + Math.random(),
       name: obj.name,
       meaning: obj.meaning || "",
       etymology: obj.etymology || "",
-      tags: (obj.tags || "").split(",").map(t => ({ name: t.trim(), norm: normalize(t) })),
-      roots: (obj.roots || "").split(",").map(r => ({ name: r.trim(), norm: normalize(r) }))
+      tags: (obj.tags || "")
+        .split(",")
+        .map(t => t.trim())
+        .filter(Boolean)
+        .map(t => ({ name: t, norm: normalize(t) })),
+      roots: (obj.roots || "")
+        .split(",")
+        .map(r => r.trim())
+        .filter(Boolean)
+        .map(r => ({ name: r, norm: normalize(r) }))
     });
 
     count++;
@@ -124,38 +160,90 @@ app.post("/import", checkAuth, (req, res) => {
 });
 
 // ===== SEARCH =====
+
+// теги (автоподсказка)
 app.get("/tags", (req, res) => {
+  const search = normalize(req.query.search || "");
   const map = new Map();
-  readData().forEach(n => n.tags.forEach(t => map.set(t.norm, t.name)));
-  res.json([...map.values()]);
+
+  readData().forEach(n =>
+    n.tags.forEach(t => map.set(t.norm, t.name))
+  );
+
+  const result = [...map.values()].filter(t =>
+    normalize(t).includes(search)
+  );
+
+  res.json(result);
 });
 
+// корни
 app.get("/roots", (req, res) => {
+  const search = normalize(req.query.search || "");
   const map = new Map();
-  readData().forEach(n => n.roots.forEach(r => map.set(r.norm, r.name)));
-  res.json([...map.values()]);
+
+  readData().forEach(n =>
+    n.roots.forEach(r => map.set(r.norm, r.name))
+  );
+
+  const result = [...map.values()].filter(r =>
+    normalize(r).includes(search)
+  );
+
+  res.json(result);
 });
 
+// фильтр по тегу
 app.get("/names/by-tag", (req, res) => {
   const tag = normalize(req.query.tag || "");
-  res.json(readData().filter(n => n.tags.some(t => t.norm === tag)));
+  res.json(
+    readData().filter(n => n.tags.some(t => t.norm === tag))
+  );
 });
 
+// фильтр по корню
 app.get("/names/by-root", (req, res) => {
   const root = normalize(req.query.root || "");
-  res.json(readData().filter(n => n.roots.some(r => r.norm === root)));
+  res.json(
+    readData().filter(n => n.roots.some(r => r.norm === root))
+  );
 });
 
-// ===== STATS =====
+// ===== СТАТИСТИКА =====
+
+// теги
 app.get("/stats/tags", (req, res) => {
   const map = {};
+
   readData().forEach(n =>
     n.tags.forEach(t => {
-      if (!map[t.norm]) map[t.norm] = { name: t.name, count: 0 };
+      if (!map[t.norm]) {
+        map[t.norm] = { name: t.name, count: 0 };
+      }
       map[t.norm].count++;
     })
   );
+
   res.json(Object.values(map).sort((a, b) => b.count - a.count));
 });
 
-app.listen(3000, () => console.log("http://localhost:3000"));
+// корни
+app.get("/stats/roots", (req, res) => {
+  const map = {};
+
+  readData().forEach(n =>
+    n.roots.forEach(r => {
+      if (!map[r.norm]) {
+        map[r.norm] = { name: r.name, count: 0 };
+      }
+      map[r.norm].count++;
+    })
+  );
+
+  res.json(Object.values(map).sort((a, b) => b.count - a.count));
+});
+
+// ===== START =====
+app.listen(3000, () => {
+  console.log("http://localhost:3000");
+});
